@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>5G Enabled Smart Smoke Detection Dashboard</title>
+  <!-- Main Stylesheet Link -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation Layout -->
+    <aside class="sidebar" id="sidebar">
+      <div>
+        <div class="sidebar-logo">
+          <div class="logo-icon-wrapper">
+            <i data-lucide="radio" class="logo-icon"></i>
+          </div>
+          <div class="logo-text">
+            <h1>5G IoT Node</h1>
+            <p>Smoke Detection System</p>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <a class="nav-item active" data-target="dashboard">
+            <i data-lucide="layout-dashboard"></i> Dashboard
+          </a>
+          <a class="nav-item" data-target="history">
+            <i data-lucide="history"></i> History
+          </a>
+          <a class="nav-item" data-target="settings">
+            <i data-lucide="settings"></i> Settings
+          </a>
+          <a class="nav-item" data-target="about">
+            <i data-lucide="info"></i> About Project
+          </a>
+        </nav>
+      </div>
+
+      <div class="sidebar-footer">
+        <p>Raspberry Pi Smart IoT</p>
+        <p style="margin-top: 4px; opacity: 0.6;">v1.0.0 (5G Eval)</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="main-content">
+      
+      <!-- Top Navigation bar -->
+      <header class="top-nav">
+        <button class="menu-toggle" id="menu-toggle-btn" aria-label="Toggle Navigation Sidebar">
+          <i data-lucide="menu" size="20"></i>
+        </button>
+        <div class="nav-title">
+          <h2>5G Enabled Smart Smoke Detection Dashboard</h2>
+        </div>
+
+        <div class="nav-status-group">
+          <!-- Clock -->
+          <div class="status-badge">
+            <i data-lucide="clock" size="14" style="color: var(--text-muted);"></i>
+            <span id="top-clock">--:--:--</span>
+          </div>
+
+          <!-- Pi Online Status -->
+          <div class="status-badge">
+            <i data-lucide="server" size="14" style="color: var(--text-muted);"></i>
+            <span style="color: var(--text-muted); margin-right: 4px;">Pi:</span>
+            <span id="top-pi-status" class="status-indicator offline"></span>
+          </div>
+
+          <!-- WebSocket status -->
+          <div id="top-conn-pill" class="connection-status-pill disconnected">
+            <i data-lucide="wifi-off" size="14"></i>
+            <span>OFFLINE</span>
+            <span id="top-conn-latency" style="display: none; border-left: 1px solid rgba(255,255,255,0.15); padding-left: 8px;"></span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Views Router Container -->
+      <div class="page-container">
+        
+        <!-- SECTION 1: DASHBOARD VIEW -->
+        <section id="dashboard" class="view-section active-view">
+          
+          <!-- Alarm Banner Indicator -->
+          <div id="alarm-banner" class="alarm-banner state-safe">
+            <div class="alarm-banner-info">
+              <div class="alarm-banner-icon">
+                <i data-lucide="shield-check" id="alarm-banner-icon-inner" size="24"></i>
+              </div>
+              <div class="alarm-banner-text">
+                <h3 id="alarm-banner-title">System Normal</h3>
+                <p id="alarm-banner-desc">All environmental sensors reporting safe levels. No smoke detected.</p>
+              </div>
+            </div>
+            <div class="alarm-banner-action" id="alarm-banner-badge">Safe Status</div>
+          </div>
+
+          <!-- Metric Cards Grid -->
+          <div class="metrics-grid">
+            
+            <!-- Card 1: Smoke Level -->
+            <div class="metric-card card-accent-smoke">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <div class="card-icon-box">
+                    <i data-lucide="flame" size="16"></i>
+                  </div>
+                  <span>Smoke Level</span>
+                </div>
+                <div class="card-trend" id="smoke-trend-badge">
+                  <i data-lucide="minus" size="12"></i>
+                  <span>Stable</span>
+                </div>
+              </div>
+
+              <div class="card-gauge-box">
+                <!-- SVG Semicircular Gauge -->
+                <svg width="120" height="70" viewBox="0 0 100 50" class="gauge-svg">
+                  <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-bg" />
+                  <path id="smoke-gauge-path" d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-val-smoke" stroke-dasharray="125.66" stroke-dashoffset="125.66" />
+                </svg>
+                <div class="gauge-text" style="bottom: 0;">
+                  <span class="gauge-text-val" id="smoke-value">---</span>
+                  <span class="gauge-text-unit">PPM</span>
+                </div>
+              </div>
+
+              <div class="card-progress-section">
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="smoke-progress-fill" style="width: 0%; background-color: var(--accent-rose);"></div>
+                </div>
+                <div class="progress-labels">
+                  <span>0 PPM</span>
+                  <span>5000 PPM</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Temperature -->
+            <div class="metric-card card-accent-temp">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <div class="card-icon-box">
+                    <i data-lucide="thermometer" size="16" style="color: var(--accent-orange);"></i>
+                  </div>
+                  <span>Temperature</span>
+                </div>
+                <div class="card-trend" id="temp-trend-badge">
+                  <i data-lucide="minus" size="12"></i>
+                  <span>Stable</span>
+                </div>
+              </div>
+
+              <div class="card-gauge-box">
+                <!-- SVG Semicircular Gauge -->
+                <svg width="120" height="70" viewBox="0 0 100 50" class="gauge-svg">
+                  <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-bg" />
+                  <path id="temp-gauge-path" d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-val-temp" stroke-dasharray="125.66" stroke-dashoffset="125.66" />
+                </svg>
+                <div class="gauge-text" style="bottom: 0;">
+                  <span class="gauge-text-val" id="temp-value">---</span>
+                  <span class="gauge-text-unit">°C</span>
+                </div>
+              </div>
+
+              <div class="card-progress-section">
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="temp-progress-fill" style="width: 0%; background-color: var(--accent-orange);"></div>
+                </div>
+                <div class="progress-labels">
+                  <span>-10 °C</span>
+                  <span>60 °C</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Humidity -->
+            <div class="metric-card card-accent-hum">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <div class="card-icon-box">
+                    <i data-lucide="droplet" size="16" style="color: var(--accent-sky);"></i>
+                  </div>
+                  <span>Humidity</span>
+                </div>
+                <div class="card-trend" id="hum-trend-badge">
+                  <i data-lucide="minus" size="12"></i>
+                  <span>Stable</span>
+                </div>
+              </div>
+
+              <div class="card-gauge-box">
+                <!-- SVG Semicircular Gauge -->
+                <svg width="120" height="70" viewBox="0 0 100 50" class="gauge-svg">
+                  <path d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-bg" />
+                  <path id="hum-gauge-path" d="M 10 45 A 40 40 0 0 1 90 45" fill="none" stroke-width="8" stroke-linecap="round" class="gauge-val-hum" stroke-dasharray="125.66" stroke-dashoffset="125.66" />
+                </svg>
+                <div class="gauge-text" style="bottom: 0;">
+                  <span class="gauge-text-val" id="hum-value">---</span>
+                  <span class="gauge-text-unit">% RH</span>
+                </div>
+              </div>
+
+              <div class="card-progress-section">
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" id="hum-progress-fill" style="width: 0%; background-color: var(--accent-sky);"></div>
+                </div>
+                <div class="progress-labels">
+                  <span>0%</span>
+                  <span>100%</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: System Status -->
+            <div class="metric-card card-accent-status">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <div class="card-icon-box" id="status-icon-box">
+                    <i data-lucide="shield" size="16"></i>
+                  </div>
+                  <span>System Status</span>
+                </div>
+              </div>
+
+              <div class="status-badge-container">
+                <div class="status-badge-visual SAFE" id="status-badge-text">SAFE</div>
+              </div>
+
+              <div class="card-footer-info">
+                <span>Security State</span>
+                <span id="status-footer-state" style="text-transform: uppercase;">SAFE</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Dashboard Charts & Log Lists Grid -->
+          <div class="dashboard-grid">
+            
+            <!-- Left Grid: Charts and event feeds -->
+            <div class="dashboard-column">
+              
+              <!-- Real-Time Telemetry Graphs Panel -->
+              <div class="panel telemetry-graphs-panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">
+                    <i data-lucide="activity" class="text-rose-500" size="16"></i> Real-time Telemetry History
+                  </h3>
+                  <div class="connection-status-pill connected" style="font-size: 8px; padding: 2px 6px;">
+                    Last 100 readings
+                  </div>
+                </div>
+
+                <div class="panel-chart-container">
+                  <!-- Smoke Chart -->
+                  <div class="real-time-chart-box">
+                    <div class="chart-header-row">
+                      <span class="chart-header-title"><i data-lucide="flame" size="12" style="color: var(--accent-rose);"></i> Smoke Concentration (PPM)</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                      <div class="chart-offline-overlay" id="smoke-offline-overlay">
+                        <i data-lucide="radio-receiver" class="text-blink" style="color: var(--accent-rose);"></i>
+                        <span>Waiting for Sensor Data...</span>
+                      </div>
+                      <canvas id="smokeChartCanvas"></canvas>
+                    </div>
+                  </div>
+
+                  <!-- Temp Chart -->
+                  <div class="real-time-chart-box" style="margin-top: 16px;">
+                    <div class="chart-header-row">
+                      <span class="chart-header-title"><i data-lucide="thermometer" size="12" style="color: var(--accent-orange);"></i> Temperature (°C)</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                      <div class="chart-offline-overlay" id="temp-offline-overlay">
+                        <i data-lucide="radio-receiver" class="text-blink" style="color: var(--accent-orange);"></i>
+                        <span>Waiting for Sensor Data...</span>
+                      </div>
+                      <canvas id="tempChartCanvas"></canvas>
+                    </div>
+                  </div>
+
+                  <!-- Hum Chart -->
+                  <div class="real-time-chart-box" style="margin-top: 16px;">
+                    <div class="chart-header-row">
+                      <span class="chart-header-title"><i data-lucide="droplet" size="12" style="color: var(--accent-sky);"></i> Humidity (%)</span>
+                    </div>
+                    <div class="chart-canvas-wrapper">
+                      <div class="chart-offline-overlay" id="hum-offline-overlay">
+                        <i data-lucide="radio-receiver" class="text-blink" style="color: var(--accent-sky);"></i>
+                        <span>Waiting for Sensor Data...</span>
+                      </div>
+                      <canvas id="humChartCanvas"></canvas>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Event Log Table Panel -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">
+                    <i data-lucide="list-collapse" class="text-emerald-500" size="16"></i> Recent Event Logs
+                  </h3>
+                  <span style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Live Feed (Last 20)</span>
+                </div>
+
+                <div class="events-table-wrapper">
+                  <table class="events-table">
+                    <thead>
+                      <tr>
+                        <th>Time</th>
+                        <th>Smoke (PPM)</th>
+                        <th>Temp (°C)</th>
+                        <th>Humidity (%)</th>
+                        <th style="text-align: right;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="dashboard-events-tbody">
+                      <tr>
+                        <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 24px; font-style: italic;">
+                          Waiting for Sensor Data...
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right Grid: Configurations & Cumulative Stats -->
+            <div class="dashboard-column">
+              
+              <!-- Connection details Panel -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">
+                    <i data-lucide="radio" class="text-emerald-500" size="16"></i> WebSocket Connection
+                  </h3>
+                </div>
+
+                <div class="info-list-group">
+                  <div class="info-list-row">
+                    <span class="info-label">Status</span>
+                    <span class="info-value text-rose-500" id="conn-card-status" style="color: var(--accent-rose);">DISCONNECTED</span>
+                  </div>
+                  <div class="info-list-row">
+                    <span class="info-label">Host IP</span>
+                    <span class="info-value info-value-mono" id="conn-card-ip">ws://192.168.1.50:8765</span>
+                  </div>
+                  <div class="info-list-row">
+                    <span class="info-label">Latency</span>
+                    <span class="info-value" id="conn-card-latency">N/A</span>
+                  </div>
+                  <div class="info-list-row">
+                    <span class="info-label">Network Transport</span>
+                    <span class="info-value" style="color: var(--accent-emerald);">5G NSA Link</span>
+                  </div>
+                </div>
+
+                <button class="action-btn-primary" id="conn-reconnect-btn">
+                  <i data-lucide="refresh-cw" size="14"></i> Force Reconnect
+                </button>
+              </div>
+
+              <!-- Stats board Panel -->
+              <div class="panel">
+                <div class="panel-header">
+                  <h3 class="panel-title">
+                    <i data-lucide="bar-chart-3" class="text-emerald-500" size="16"></i> Session Stats
+                  </h3>
+                  <button class="reset-btn-link" id="stats-reset-btn">
+                    <i data-lucide="refresh-ccw" size="10"></i> Reset
+                  </button>
+                </div>
+
+                <div class="stats-subgrid">
+                  <div class="stats-card-mini max-val">
+                    <span>Max Smoke</span>
+                    <span id="stats-max-smoke">---</span>
+                  </div>
+                  <div class="stats-card-mini min-val">
+                    <span>Min Smoke</span>
+                    <span id="stats-min-smoke">---</span>
+                  </div>
+                  <div class="stats-card-mini">
+                    <span>Avg Temp</span>
+                    <span id="stats-avg-temp">---</span>
+                  </div>
+                  <div class="stats-card-mini">
+                    <span>Avg Hum</span>
+                    <span id="stats-avg-hum">---</span>
+                  </div>
+                </div>
+
+                <div class="info-list-group" style="margin-top: 16px;">
+                  <div class="info-list-row" style="font-size: 11px;">
+                    <span class="info-label" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-indicator" style="background-color: var(--accent-emerald); width: 6px; height: 6px;"></span>
+                      Safe Packets
+                    </span>
+                    <span class="info-value" id="stats-safe-count">0</span>
+                  </div>
+                  <div class="info-list-row" style="font-size: 11px;">
+                    <span class="info-label" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-indicator" style="background-color: var(--accent-amber); width: 6px; height: 6px;"></span>
+                      Warning Packets
+                    </span>
+                    <span class="info-value" id="stats-warn-count">0</span>
+                  </div>
+                  <div class="info-list-row" style="font-size: 11px;">
+                    <span class="info-label" style="display: flex; align-items: center; gap: 6px;">
+                      <span class="status-indicator" style="background-color: var(--accent-rose); width: 6px; height: 6px;"></span>
+                      Danger Packets
+                    </span>
+                    <span class="info-value" id="stats-danger-count">0</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+        <!-- SECTION 2: REMOVED (PAST ANALYTICS REDIRECTED TO LIVE CONSOLE) -->
+
+        <!-- SECTION 3: HISTORY LOGS VIEW -->
+        <section id="history" class="view-section">
+          
+          <div class="page-header">
+            <h2>System Logs History</h2>
+            <p>Inspect, filter, and export the current session's sensor logs.</p>
+          </div>
+
+          <!-- Filters row -->
+          <div class="panel filters-bar">
+            
+            <!-- Search field -->
+            <div class="search-input-wrapper">
+              <i data-lucide="search" class="search-input-icon" size="14"></i>
+              <input type="number" id="history-search-smoke" placeholder="Search by min smoke level (e.g. 1500)...">
+            </div>
+
+            <!-- Dropdown select -->
+            <select class="filter-select" id="history-filter-status">
+              <option value="ALL">All Status States</option>
+              <option value="SAFE">SAFE Only</option>
+              <option value="WARNING">WARNING Only</option>
+              <option value="DANGER">DANGER Only</option>
+            </select>
+
+            <!-- Export Buttons -->
+            <div class="export-actions-row">
+              <button class="btn-export" id="btn-export-csv">
+                <i data-lucide="file-spreadsheet" class="text-emerald-500"></i> CSV
+              </button>
+              <button class="btn-export" id="btn-export-json">
+                <i data-lucide="file-json" class="text-sky-500"></i> JSON
+              </button>
+              <button class="btn-export" id="btn-export-logs">
+                <i data-lucide="file-text" class="text-amber-500"></i> Download Logs
+              </button>
+            </div>
+
+          </div>
+
+          <!-- Event Log Panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <h3 class="panel-title">Session Telemetry Records Log</h3>
+              <span id="history-records-count" style="font-size: 10px; color: var(--text-muted); font-weight: 700;">Records: 0</span>
+            </div>
+
+            <div class="events-table-wrapper">
+              <table class="events-table">
+                <thead>
+                  <tr>
+                    <th>Date Time</th>
+                    <th>Smoke (PPM)</th>
+                    <th>Temp (°C)</th>
+                    <th>Humidity (% RH)</th>
+                    <th style="text-align: right;">System Status</th>
+                  </tr>
+                </thead>
+                <tbody id="history-logs-tbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 32px; font-style: italic;">
+                      Waiting for Sensor Data...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- SECTION 4: SETTINGS VIEW -->
+        <section id="settings" class="view-section">
+          
+          <div class="page-header">
+            <h2>Control Settings Panel</h2>
+            <p>Configure client connection parameters, thresholds, and theme toggles.</p>
+          </div>
+
+          <div class="settings-form">
+            
+            <form id="settings-form-element">
+              
+              <!-- Connection IP -->
+              <div class="panel" style="margin-bottom: 20px;">
+                <h3 class="settings-group-title"><i data-lucide="network"></i> Connection Coordinates</h3>
+                <div class="settings-input-row">
+                  <label for="settings-ip-input">WebSocket Server URL</label>
+                  <input type="text" id="settings-ip-input" placeholder="e.g. ws://10.101.0.97:8765">
+                  <p style="font-size: 9px; color: var(--text-muted); margin-top: 6px; font-weight: 500;">
+                    Modifies default target socket. Active endpoint will compile to: <code style="font-family: var(--font-mono); color: var(--text-secondary);" id="active-ws-url">ws://10.101.0.97:8765</code>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Threshold Calibrations -->
+              <div class="panel" style="margin-bottom: 20px;">
+                <h3 class="settings-group-title"><i data-lucide="flame" style="color: var(--accent-rose);"></i> Sensor Thresholds</h3>
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div class="settings-input-row">
+                    <label for="settings-warn-input">Smoke Warning Level (PPM)</label>
+                    <input type="number" id="settings-warn-input">
+                    <p style="font-size: 8.5px; color: var(--text-muted); margin-top: 4px;">PPM values above this trigger WARNING state (Orange).</p>
+                  </div>
+                  <div class="settings-input-row">
+                    <label for="settings-danger-input">Smoke Danger Level (PPM)</label>
+                    <input type="number" id="settings-danger-input">
+                    <p style="font-size: 8.5px; color: var(--text-muted); margin-top: 4px;">PPM values above this trigger DANGER state & Siren (Red).</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Alert Preferences -->
+              <div class="panel" style="margin-bottom: 20px;">
+                <h3 class="settings-group-title"><i data-lucide="volume-2"></i> Client Alert Preferences</h3>
+                
+                <!-- Siren Sound toggle -->
+                <div class="settings-toggle-row">
+                  <div class="toggle-details">
+                    <h4>Audible Siren Tone</h4>
+                    <p>Synthesizes alternating high-frequency beeps during critical danger thresholds.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-sound-toggle">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Toast Notifications toggle -->
+                <div class="settings-toggle-row">
+                  <div class="toggle-details">
+                    <h4>Toast Banner Notifications</h4>
+                    <p>Flashes sliding visual notice alerts on status state changes.</p>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" id="settings-toast-toggle">
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Theme selector -->
+              <div class="panel" style="margin-bottom: 20px;">
+                <h3 class="settings-group-title"><i data-lucide="sun"></i> Theme Mode</h3>
+                <div class="theme-switch-grid">
+                  <button type="button" class="theme-btn" id="theme-btn-dark">
+                    <i data-lucide="moon"></i> Dark Mode
+                  </button>
+                  <button type="button" class="theme-btn" id="theme-btn-light">
+                    <i data-lucide="sun"></i> Light Mode
+                  </button>
+                </div>
+              </div>
+
+              <!-- Submit button row -->
+              <div class="btn-submit-row">
+                <button type="submit" class="btn-submit">
+                  <i data-lucide="save"></i> Save Preferences
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+
+        </section>
+
+        <!-- SECTION 5: ABOUT VIEW -->
+        <section id="about" class="view-section">
+          
+          <div class="page-header">
+            <h2>About Smoke Monitor</h2>
+            <p>Structural pipeline summary for the 5G Enabled Smart Smoke Detection Gateway.</p>
+          </div>
+
+          <div class="panel" style="margin-bottom: 24px;">
+            <h3 class="settings-group-title" style="color: var(--accent-sky);"><i data-lucide="terminal"></i> System Framework Diagram</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">
+              This IoT dashboard manages telemetry sent over high-speed networks. Standard sensor variables parsed by hardware nodes are formatted as CSV lines and pushed via serial link to a Raspberry Pi client. The Raspberry Pi broadcasts packets in real time over WebSockets on port 8765. Our HTML5 client establishes a direct WebSocket interface, rendering dials and logs instantly without server-side processing queues.
+            </p>
+
+            <div class="about-pipeline-row">
+              <div class="pipeline-card">
+                <h4>ESP32 Client Node</h4>
+                <span>Reads MQ2 & DHT22 Dials</span>
+              </div>
+              <div class="pipeline-card" style="border-color: rgba(14, 165, 233, 0.25); background-color: rgba(14, 165, 233, 0.05); color: var(--accent-sky);">
+                <h4>Pi Gateway / 5G Link</h4>
+                <span>Python WebSocket Daemon</span>
+              </div>
+              <div class="pipeline-card" style="border-color: rgba(16, 185, 129, 0.25); background-color: rgba(16, 185, 129, 0.05); color: var(--accent-emerald);">
+                <h4>HTML5 Dashboard UI</h4>
+                <span>Real-time Visualization</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="about-split-grid">
+            
+            <!-- Hardware -->
+            <div class="panel">
+              <h3 class="settings-group-title" style="color: var(--accent-orange);"><i data-lucide="cpu"></i> System Hardware Nodes</h3>
+              <div class="about-list">
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>ESP32 Micro-controller</h4>
+                    <span class="about-item-badge">MCU</span>
+                  </div>
+                  <p>Handles analog pin sampling for sensor voltages and feeds formatted lines to the host serial interface at 115200 BAUD.</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>MQ2 Sensor Module</h4>
+                    <span class="about-item-badge">Sensor</span>
+                  </div>
+                  <p>Detects smoke concentration levels and outputs proportional voltages corresponding to gas density (measured in PPM).</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>DHT22 Sensor</h4>
+                    <span class="about-item-badge">Sensor</span>
+                  </div>
+                  <p>Measures ambient temperature (°C) and capacitive relative humidity (% RH) with digital single-bus protocols.</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>5G Evaluation Board</h4>
+                    <span class="about-item-badge">Link</span>
+                  </div>
+                  <p>Simulates sub-millisecond mobile transit, linking Raspberry Pi WebSocket broadcasts directly to remote network endpoints.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Software -->
+            <div class="panel">
+              <h3 class="settings-group-title" style="color: var(--accent-sky);"><i data-lucide="server"></i> Software Libraries & Protocols</h3>
+              <div class="about-list">
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>Python websockets</h4>
+                    <span class="about-item-badge" style="background-color: rgba(16,185,129,0.1); color: var(--accent-emerald); border-color: rgba(16,185,129,0.15);">Backend</span>
+                  </div>
+                  <p>Runs as an async daemon, listening to COM / ACM serial ports and broadcasting CSV telemetry strings directly to clients.</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>Vanilla ES6+ JS</h4>
+                    <span class="about-item-badge">Frontend</span>
+                  </div>
+                  <p>Direct browser WebSocket API connects, auto-reconnects, processes strings, manages states, and handles settings configurations.</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>SCADA Console</h4>
+                    <span class="about-item-badge" style="background-color: rgba(16,185,129,0.1); color: var(--accent-emerald); border-color: rgba(16,185,129,0.15);">Telemetry</span>
+                  </div>
+                  <p>Renders scrolling telemetry grids, packet frequency statistics, state filters, and alarm color codes dynamically using ES6 DOM pipelines.</p>
+                </div>
+                <div class="about-list-item">
+                  <div class="about-item-header">
+                    <h4>Lucide Icons (CDN)</h4>
+                    <span class="about-item-badge">Assets</span>
+                  </div>
+                  <p>Generates vectors representing metrics and status dials dynamically using HTML data attributes.</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- Toast Notification Popup wrapper -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Chart.js 4.x CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Core Script File -->
+  <script src="script.js"></script>
+</body>
+</html>
